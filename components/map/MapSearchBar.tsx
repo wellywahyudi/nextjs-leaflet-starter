@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Briefcase, Car, ChevronRight, MapPin } from "lucide-react";
+import {
+  Search,
+  ChevronRight,
+  MapPin,
+  Ruler,
+  RotateCcw,
+  Locate,
+  PencilRuler,
+} from "lucide-react";
 
 interface Country {
   id: string;
@@ -144,13 +152,12 @@ export function MapSearchBar({ onCountrySelect }: MapSearchBarProps) {
   }, [isExpanded]);
 
   return (
-    <div className="search-container absolute left-4 top-3 z-[1001]">
+    <div className="search-container absolute left-0 right-0 sm:left-4 sm:right-auto top-3 z-[1001] px-4 sm:px-0">
       {/* Search Box - always visible */}
       <div
         className={`flex items-center gap-2 bg-white px-4 py-3.5 shadow-lg transition-all duration-50 ${
           isExpanded ? "rounded-t-lg" : "rounded-full"
-        }`}
-        style={{ width: isExpanded ? "360px" : "auto" }}
+        } w-full sm:w-[360px]`}
       >
         <input
           ref={searchInputRef}
@@ -195,7 +202,6 @@ export function MapSearchBar({ onCountrySelect }: MapSearchBarProps) {
             ? "max-h-[500px] opacity-100 rounded-b-lg"
             : "max-h-0 opacity-0"
         }`}
-        style={{ width: "360px" }}
         aria-label="Search results"
       >
         <div className="overflow-y-auto max-h-[450px]">
@@ -264,60 +270,67 @@ export function MapSearchBar({ onCountrySelect }: MapSearchBarProps) {
             </>
           )}
 
-          {/* Work Location & Additional Info - Original UI */}
-          {!searchQuery && (
-            <>
-              <button className="flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-gray-50">
-                <Briefcase className="h-5 w-5 flex-shrink-0 text-gray-400" />
-                <div className="flex-1">
-                  <span className="text-sm font-medium text-gray-900">
-                    Work
-                  </span>
+          {/* Locate Me Button */}
+          {!loading && countries.length > 0 && (
+            <div className="border-t border-gray-200 mt-2">
+              <button className="flex w-full items-center gap-3 px-4 py-3 hover:bg-blue-50 transition-colors group">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                  <Locate className="h-4 w-4 text-blue-600" />
                 </div>
-                <span className="text-sm text-blue-600">Set location</span>
-              </button>
-
-              {/* More from recent history link */}
-              <button className="w-full px-4 py-3 text-left">
-                <span className="text-sm text-blue-600">
-                  More from recent history
-                </span>
-              </button>
-
-              {/* Location & Traffic Info */}
-              <div className="border-t border-gray-200">
-                <div className="flex items-center justify-between px-4 py-3">
-                  <span className="font-medium text-gray-900">Bali</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-gray-700">26°</span>
-                    <svg
-                      className="h-5 w-5 text-yellow-500"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95z" />
-                    </svg>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-medium text-blue-600">
+                    Locate Me
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Find my current location
                   </div>
                 </div>
-                <button className="flex w-full items-center gap-3 px-4 py-3 hover:bg-gray-50">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-                    <Car className="h-4 w-4 text-green-700" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="text-sm font-medium text-gray-900">
-                      Light traffic in this area
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Typical conditions
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
-                </button>
-              </div>
-            </>
+                <ChevronRight className="h-5 w-5 text-blue-400" />
+              </button>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Map Tools Panel - Visible when search is expanded */}
+      {isExpanded && (
+        <div className="mt-2 bg-white rounded-2xl shadow-lg transition-all duration-300">
+          <div className="px-3 py-3.5">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Map Tools
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              <button className="flex flex-col items-center gap-1 px-2 py-2 rounded-2xl bg-stone-200 hover:bg-stone-300 transition-colors">
+                <Ruler className="h-4 w-4 text-blue-600" />
+                <span className="text-[10px] font-medium text-gray-700 text-center leading-tight">
+                  Measure
+                </span>
+              </button>
+
+              <button className="flex flex-col items-center gap-1 px-2 py-2 rounded-2xl bg-stone-200 hover:bg-stone-300 transition-colors">
+                <MapPin className="h-4 w-4 text-green-600" />
+                <span className="text-[10px] font-medium text-gray-700 text-center leading-tight">
+                  Marker
+                </span>
+              </button>
+
+              <button className="flex flex-col items-center gap-1 px-2 py-2 rounded-2xl bg-stone-200 hover:bg-stone-300 transition-colors">
+                <PencilRuler className="h-4 w-4 text-purple-600" />
+                <span className="text-[10px] font-medium text-gray-700 text-center leading-tight">
+                  Draw
+                </span>
+              </button>
+
+              <button className="flex flex-col items-center gap-1 px-2 py-2 rounded-2xl bg-stone-200 hover:bg-stone-300 transition-colors">
+                <RotateCcw className="h-4 w-4 text-orange-600" />
+                <span className="text-[10px] font-medium text-gray-700 text-center leading-tight">
+                  Reset
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
