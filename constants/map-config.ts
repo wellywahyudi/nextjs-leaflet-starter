@@ -6,11 +6,11 @@ import type { MapConfig } from '@/types';
 
 /**
  * Default map configuration
- * Center: London coordinates
+ * Center: Indonesia coordinates
  */
 export const DEFAULT_MAP_CONFIG: MapConfig = {
-  defaultCenter: [51.505, -0.09],
-  defaultZoom: 13,
+  defaultCenter: [-2.911154, 120.074263],
+  defaultZoom: 5,
   minZoom: 3,
   maxZoom: 18,
   zoomControl: false, // Using custom controls in dock

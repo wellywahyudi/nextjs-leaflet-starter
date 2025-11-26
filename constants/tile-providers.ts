@@ -20,7 +20,7 @@ export const TILE_PROVIDERS: TileProvider[] = [
     id: 'satellite',
     name: 'Satellite',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
+    attribution: '&copy; <a href="https://www.esri.com/">Esri World Imagery </a>',
     maxZoom: 18,
     category: 'satellite',
   },
