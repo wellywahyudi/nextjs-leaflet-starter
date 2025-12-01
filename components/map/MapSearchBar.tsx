@@ -23,6 +23,7 @@ interface MapSearchBarProps {
   onCountrySelect: (countryId: string) => void;
   selectedCountry?: GeoJSON.Feature | null;
   onClearSelection?: () => void;
+  onMeasurementClick?: () => void;
 }
 
 /**
@@ -43,6 +44,7 @@ export function MapSearchBar({
   onCountrySelect,
   selectedCountry,
   onClearSelection,
+  onMeasurementClick,
 }: MapSearchBarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -368,7 +370,13 @@ export function MapSearchBar({
               Map Tools
             </div>
             <div className="grid grid-cols-4 gap-1">
-              <button className="flex flex-col items-center gap-1 px-2 py-2 rounded-2xl bg-stone-200 dark:bg-gray-700 hover:bg-stone-300 dark:hover:bg-gray-600 transition-colors">
+              <button
+                onClick={() => {
+                  onMeasurementClick?.();
+                  setIsExpanded(false);
+                }}
+                className="flex flex-col items-center gap-1 px-2 py-2 rounded-2xl bg-stone-200 dark:bg-gray-700 hover:bg-stone-300 dark:hover:bg-gray-600 transition-colors"
+              >
                 <Ruler className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
                   Measure

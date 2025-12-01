@@ -1,53 +1,42 @@
 "use client";
 
-import { Map, Satellite, Moon, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import Image from "next/image";
 import { TILE_PROVIDERS } from "@/constants/tile-providers";
 
-interface MapLayersPanelProps {
+interface MapTileSwitcherProps {
   selectedProviderId: string;
   onProviderChange: (providerId: string) => void;
 }
 
 /**
- * MapLayersPanel - Layer switcher panel at bottom left with slide-out on hover
- * Shows OSM, Satellite, Dark, and More options
+ * MapTileSwitcher - Tile layer switcher UI
  */
-export function MapLayersPanel({
+export function MapTileSwitcher({
   selectedProviderId,
   onProviderChange,
-}: MapLayersPanelProps) {
+}: MapTileSwitcherProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Map tile providers to display options
+  // Map tile providers to display options with PNG previews
   const layerOptions = [
     {
       id: "osm",
       label: "Basic",
-      icon: Map,
-      preview: "from-blue-400 to-blue-600",
+      image: "/map-basic.png",
       provider: TILE_PROVIDERS.find((p) => p.id === "osm"),
     },
     {
       id: "satellite",
       label: "Satellite",
-      icon: Satellite,
-      preview: "from-green-600 to-green-800",
+      image: "/map-satellite.png",
       provider: TILE_PROVIDERS.find((p) => p.id === "satellite"),
     },
     {
       id: "dark",
       label: "Dark",
-      icon: Moon,
-      preview: "from-gray-700 to-gray-900",
+      image: "/map-dark.png",
       provider: TILE_PROVIDERS.find((p) => p.id === "dark"),
-    },
-    {
-      id: "more",
-      label: "More",
-      icon: MoreHorizontal,
-      preview: "from-gray-400 to-gray-600",
-      provider: null,
     },
   ];
 
@@ -82,10 +71,14 @@ export function MapLayersPanel({
               } ${!layer.provider ? "opacity-50 cursor-not-allowed" : ""}`}
               title={layer.label}
             >
-              <div
-                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-gradient-to-br ${layer.preview} flex items-center justify-center overflow-hidden shadow-sm`}
-              >
-                <layer.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <div className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-lg overflow-hidden shadow-sm">
+                <Image
+                  src={layer.image}
+                  alt={`${layer.label} map preview`}
+                  fill
+                  sizes="(max-width: 640px) 40px, 48px"
+                  className="object-cover"
+                />
               </div>
               <span className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300">
                 {layer.label}
@@ -95,18 +88,22 @@ export function MapLayersPanel({
         </div>
       </div>
 
-      {/* Main Layer Button */}
+      {/* Main Tile Button */}
       <div className="flex flex-col items-center gap-1">
         <button
           className="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all"
-          aria-label="Layer options"
+          aria-label="Tile layer options"
         >
-          <div
-            className={`h-16 w-16 sm:h-18 sm:w-20 bg-gradient-to-br ${selectedLayer.preview} flex items-center justify-center`}
-          >
-            <selectedLayer.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+          <div className="relative h-16 w-16 sm:h-18 sm:w-20">
+            <Image
+              src={selectedLayer.image}
+              alt={`${selectedLayer.label} map preview`}
+              fill
+              sizes="(max-width: 640px) 64px, 80px"
+              className="object-cover"
+            />
           </div>
-          <span className="rounded bg-white dark:bg-gray-800 px-2 text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300">
+          <span className="block bg-white dark:bg-gray-800 px-2 py-1 text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300">
             {selectedLayer.label}
           </span>
         </button>

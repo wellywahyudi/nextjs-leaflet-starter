@@ -6,9 +6,10 @@ import { LeafletTileLayer } from "./LeafletTileLayer";
 import { LeafletGeoJSON } from "./LeafletGeoJSON";
 import { MapSearchBar } from "./MapSearchBar";
 import { MapTopBar } from "./MapTopBar";
-import { MapLayersPanel } from "./MapLayersPanel";
+import { MapTileSwitcher } from "./MapTileSwitcher";
 import { MapControls } from "./MapControls";
 import { MapDetailsPanel } from "./MapDetailsPanel";
+import { MapMeasurementPanel } from "./MapMeasurementPanel";
 import { useMapTileProvider } from "@/hooks/useMapTileProvider";
 
 /**
@@ -17,6 +18,7 @@ import { useMapTileProvider } from "@/hooks/useMapTileProvider";
 export function MapMain() {
   const [selectedCountry, setSelectedCountry] =
     useState<GeoJSON.Feature | null>(null);
+  const [isMeasurementOpen, setIsMeasurementOpen] = useState(false);
 
   // Use custom hook for theme-aware tile provider management
   const { tileProvider, currentProviderId, setProviderId } =
@@ -59,13 +61,14 @@ export function MapMain() {
         onCountrySelect={handleCountrySelect}
         selectedCountry={selectedCountry}
         onClearSelection={() => setSelectedCountry(null)}
+        onMeasurementClick={() => setIsMeasurementOpen(true)}
       />
 
       {/* Top Bar */}
       <MapTopBar />
 
-      {/* Layers Panel */}
-      <MapLayersPanel
+      {/* Tile Switcher */}
+      <MapTileSwitcher
         selectedProviderId={currentProviderId}
         onProviderChange={setProviderId}
       />
@@ -77,6 +80,12 @@ export function MapMain() {
       <MapDetailsPanel
         country={selectedCountry}
         onClose={() => setSelectedCountry(null)}
+      />
+
+      {/* Measurement Panel */}
+      <MapMeasurementPanel
+        isOpen={isMeasurementOpen}
+        onClose={() => setIsMeasurementOpen(false)}
       />
     </div>
   );

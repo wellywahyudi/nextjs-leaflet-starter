@@ -78,7 +78,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the landing page, th
 | `LeafletGeoJSON`   | GeoJSON rendering with styling         |
 | `LeafletMarker`    | Custom markers                         |
 | `MapControls`      | Zoom, fullscreen, location, reset      |
-| `MapLayersPanel`   | Tile provider switcher                 |
+| `MapTileSwitcher`  | Tile provider switcher with previews   |
 | `MapSearchBar`     | Country search with autocomplete       |
 
 ## 🎨 Customization
