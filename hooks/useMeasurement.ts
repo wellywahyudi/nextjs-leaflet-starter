@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useLeafletMap } from './useLeafletMap';
-import type { LatLng } from 'leaflet';
+import { calculateDistance as calculateDistanceUtil } from '@/lib/utils/coordinates';
+import type { LatLng, LeafletMouseEvent } from 'leaflet';
 
 export type MeasurementMode = 'distance' | 'area' | null;
 
@@ -17,6 +18,12 @@ type L = typeof import('leaflet');
  * Hook for map measurement functionality
  * Supports distance and area measurements
  * 
+ * Features:
+ * - Proper event handler cleanup (stores reference to specific handler)
+ * - Memory leak prevention with refs cleanup
+ * - Safe async Leaflet import pattern
+ * - Uses shared utility for distance calculation (no duplication)
+ * 
  * @returns Object with measurement functions and state
  */
 export function useMeasurement() {
@@ -28,23 +35,18 @@ export function useMeasurement() {
   const polylineRef = useRef<L.Polyline | null>(null);
   const polygonRef = useRef<L.Polygon | null>(null);
   const markersRef = useRef<L.CircleMarker[]>([]);
+  
+  // Store click handler reference for proper cleanup
+  const clickHandlerRef = useRef<((e: LeafletMouseEvent) => void) | null>(null);
 
   /**
-   * Calculate distance between two points using Haversine formula
+   * Calculate distance between two LatLng points using shared utility
    */
-  const calculateDistance = useCallback((latlng1: LatLng, latlng2: LatLng): number => {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = (latlng1.lat * Math.PI) / 180;
-    const φ2 = (latlng2.lat * Math.PI) / 180;
-    const Δφ = ((latlng2.lat - latlng1.lat) * Math.PI) / 180;
-    const Δλ = ((latlng2.lng - latlng1.lng) * Math.PI) / 180;
-
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
+  const calculatePointDistance = useCallback((latlng1: LatLng, latlng2: LatLng): number => {
+    return calculateDistanceUtil(
+      [latlng1.lat, latlng1.lng],
+      [latlng2.lat, latlng2.lng]
+    );
   }, []);
 
   /**
@@ -53,10 +55,10 @@ export function useMeasurement() {
   const calculateTotalDistance = useCallback((pts: MeasurementPoint[]): number => {
     let total = 0;
     for (let i = 0; i < pts.length - 1; i++) {
-      total += calculateDistance(pts[i].latlng, pts[i + 1].latlng);
+      total += calculatePointDistance(pts[i].latlng, pts[i + 1].latlng);
     }
     return total;
-  }, [calculateDistance]);
+  }, [calculatePointDistance]);
 
   /**
    * Calculate area using Shoelace formula
@@ -82,20 +84,61 @@ export function useMeasurement() {
   }, []);
 
   /**
+   * Clear measurement - removes only OUR click handler, not all handlers
+   * NOTE: Defined before startMeasurement to avoid reference issues
+   */
+  const clearMeasurement = useCallback(() => {
+    if (!map) return;
+
+    // Remove all markers
+    markersRef.current.forEach((marker) => {
+      if (marker && map.hasLayer(marker)) {
+        map.removeLayer(marker);
+      }
+    });
+    markersRef.current = [];
+
+    // Remove polyline
+    if (polylineRef.current && map.hasLayer(polylineRef.current)) {
+      map.removeLayer(polylineRef.current);
+      polylineRef.current = null;
+    }
+
+    // Remove polygon
+    if (polygonRef.current && map.hasLayer(polygonRef.current)) {
+      map.removeLayer(polygonRef.current);
+      polygonRef.current = null;
+    }
+
+    // Remove ONLY our click handler (not all click handlers)
+    if (clickHandlerRef.current) {
+      map.off('click', clickHandlerRef.current);
+      clickHandlerRef.current = null;
+    }
+    
+    map.getContainer().style.cursor = '';
+
+    setPoints([]);
+    setDistance(0);
+    setArea(0);
+    setMode(null);
+  }, [map]);
+
+  /**
    * Start measurement mode
    */
   const startMeasurement = useCallback(async (measurementMode: MeasurementMode) => {
     if (!map || !measurementMode) return;
 
-    // Clear previous measurement
+    // Clear previous measurement first
     clearMeasurement();
 
     setMode(measurementMode);
 
     const L = await import('leaflet');
 
-    // Add click handler
-    const handleMapClick = (e: L.LeafletMouseEvent) => {
+    // Create click handler and store reference for proper cleanup
+    const handleMapClick = (e: LeafletMouseEvent) => {
       const newPoint: MeasurementPoint = {
         latlng: e.latlng,
       };
@@ -159,45 +202,11 @@ export function useMeasurement() {
       });
     };
 
+    // Store handler reference for cleanup
+    clickHandlerRef.current = handleMapClick;
     map.on('click', handleMapClick);
     map.getContainer().style.cursor = 'crosshair';
-  }, [map, calculateTotalDistance, calculateArea]);
-
-  /**
-   * Clear measurement
-   */
-  const clearMeasurement = useCallback(() => {
-    if (!map) return;
-
-    // Remove all markers
-    markersRef.current.forEach((marker) => {
-      if (marker && map.hasLayer(marker)) {
-        map.removeLayer(marker);
-      }
-    });
-    markersRef.current = [];
-
-    // Remove polyline
-    if (polylineRef.current && map.hasLayer(polylineRef.current)) {
-      map.removeLayer(polylineRef.current);
-      polylineRef.current = null;
-    }
-
-    // Remove polygon
-    if (polygonRef.current && map.hasLayer(polygonRef.current)) {
-      map.removeLayer(polygonRef.current);
-      polygonRef.current = null;
-    }
-
-    // Remove click handler
-    map.off('click');
-    map.getContainer().style.cursor = '';
-
-    setPoints([]);
-    setDistance(0);
-    setArea(0);
-    setMode(null);
-  }, [map]);
+  }, [map, calculateTotalDistance, calculateArea, clearMeasurement]);
 
   /**
    * Undo last point
@@ -260,9 +269,36 @@ export function useMeasurement() {
   const finishMeasurement = useCallback(() => {
     if (!map) return;
 
-    map.off('click');
+    // Remove ONLY our click handler
+    if (clickHandlerRef.current) {
+      map.off('click', clickHandlerRef.current);
+      clickHandlerRef.current = null;
+    }
+    
     map.getContainer().style.cursor = '';
     setMode(null);
+  }, [map]);
+
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (map && clickHandlerRef.current) {
+        map.off('click', clickHandlerRef.current);
+        clickHandlerRef.current = null;
+      }
+      // Clean up any remaining layers
+      markersRef.current.forEach((marker) => {
+        if (marker && map?.hasLayer(marker)) {
+          map.removeLayer(marker);
+        }
+      });
+      if (polylineRef.current && map?.hasLayer(polylineRef.current)) {
+        map.removeLayer(polylineRef.current);
+      }
+      if (polygonRef.current && map?.hasLayer(polygonRef.current)) {
+        map.removeLayer(polygonRef.current);
+      }
+    };
   }, [map]);
 
   return {

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Utensils, Hotel, Compass, Bus } from "lucide-react";
 import { MapThemeSwitcher } from "./MapThemeSwitcher";
 import { MapUser } from "./MapUser";
@@ -9,12 +10,13 @@ const categories = [
   { icon: Hotel, label: "Hotels" },
   { icon: Compass, label: "Attractions" },
   { icon: Bus, label: "Transit" },
-];
+] as const;
 
 /**
  * MapTopBar - Top navigation bar with category pills and user menu
+ * Memoized to prevent unnecessary re-renders
  */
-export function MapTopBar() {
+export const MapTopBar = memo(function MapTopBar() {
   return (
     <div className="absolute left-4 right-4 top-4 flex items-center gap-2 z-[1000]">
       {/* Spacer for search bar */}
@@ -43,4 +45,6 @@ export function MapTopBar() {
       </div>
     </div>
   );
-}
+});
+
+MapTopBar.displayName = "MapTopBar";

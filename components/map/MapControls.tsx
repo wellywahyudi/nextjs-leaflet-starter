@@ -1,17 +1,18 @@
 "use client";
 
+import { memo, useState, useEffect } from "react";
 import { Plus, Minus, Maximize2, Minimize2 } from "lucide-react";
 import { useMapControls } from "@/hooks/useMapControls";
 import { useGeolocation } from "@/hooks/useGeolocation";
-import { useState, useEffect } from "react";
 
 /**
  * MapControls - Map control buttons at bottom right
  * Includes: Location, Zoom In/Out, Reset View, Fullscreen
  *
  * Uses project's useMapControls hook for map interactions
+ * Memoized to prevent unnecessary re-renders
  */
-export function MapControls() {
+export const MapControls = memo(function MapControls() {
   const { map, zoomIn, zoomOut, toggleFullscreen, resetView } =
     useMapControls();
   const { locateUser, isLocating, isAvailable } = useGeolocation();
@@ -116,4 +117,6 @@ export function MapControls() {
       </button>
     </div>
   );
-}
+});
+
+MapControls.displayName = "MapControls";

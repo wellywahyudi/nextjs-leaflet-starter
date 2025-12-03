@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useContext } from "react";
+import { useEffect, useRef, useContext, useCallback } from "react";
 import type { Map as LeafletMapInstance } from "leaflet";
 import { MapContext } from "@/contexts/MapContext";
 import { DEFAULT_MAP_CONFIG } from "@/constants/map-config";
@@ -13,9 +13,11 @@ import type { LeafletMapProps } from "@/types/components";
  * It registers the map with MapContext so other components can access it.
  *
  * Features:
- * - Initializes Leaflet map with configurable options
+ * - Initializes Leaflet map ONCE with configurable options
+ * - Separates initialization from view updates to prevent unnecessary re-creation
  * - Registers map instance with MapContext
  * - Handles cleanup on unmount to prevent memory leaks
+ * - Uses AbortController pattern for safe async cleanup
  * - Supports custom center, zoom, and zoom bounds
  *
  * @example
@@ -37,6 +39,12 @@ export function LeafletMap({
 }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMapInstance | null>(null);
+  const isInitializedRef = useRef(false);
+
+  // Store initial values to prevent re-initialization on prop changes
+  const initialCenterRef = useRef(center);
+  const initialZoomRef = useRef(zoom);
+
   const context = useContext(MapContext);
 
   if (context === undefined) {
@@ -45,91 +53,105 @@ export function LeafletMap({
 
   const { setMap } = context;
 
+  // Memoized cleanup function
+  const cleanupMap = useCallback(() => {
+    if (mapRef.current) {
+      try {
+        mapRef.current.remove();
+      } catch (error) {
+        console.error("Error during map cleanup:", error);
+      }
+      mapRef.current = null;
+      isInitializedRef.current = false;
+      setMap(null);
+    }
+  }, [setMap]);
+
+  // Initialize map ONCE on mount
   useEffect(() => {
-    // Don't initialize if container is missing or map already exists
-    if (!containerRef.current || mapRef.current) {
+    // Prevent double initialization (React StrictMode)
+    if (isInitializedRef.current || !containerRef.current) {
       return;
     }
 
-    // Store config values in variables to avoid stale closures
-    const mapCenter = center;
-    const mapZoom = zoom;
-    const mapMinZoom = minZoom;
-    const mapMaxZoom = maxZoom;
+    let isMounted = true;
+    const container = containerRef.current;
 
-    // Dynamically import Leaflet to avoid SSR issues
-    import("leaflet")
-      .then((L) => {
-        if (!containerRef.current || mapRef.current) {
+    const initializeMap = async () => {
+      try {
+        // Dynamically import Leaflet to avoid SSR issues
+        const L = await import("leaflet");
+
+        // Check if component is still mounted and not already initialized
+        if (!isMounted || !container || isInitializedRef.current) {
           return;
         }
 
-        try {
-          // Ensure container has height before initializing
-          const containerHeight = containerRef.current.offsetHeight;
-          if (containerHeight === 0) {
-            // Container not ready yet, retry after next render
-            requestAnimationFrame(() => {
-              if (containerRef.current && !mapRef.current) {
-                // Will be caught on next dynamic import attempt
-              }
-            });
-            return;
-          }
-
-          // Initialize Leaflet map
-          const map = L.map(containerRef.current, {
-            center: mapCenter,
-            zoom: mapZoom,
-            minZoom: mapMinZoom,
-            maxZoom: mapMaxZoom,
-            zoomControl: DEFAULT_MAP_CONFIG.zoomControl,
-            attributionControl: DEFAULT_MAP_CONFIG.attributionControl,
-          });
-
-          // Store map reference
-          mapRef.current = map;
-
-          // Register map with context
-          setMap(map);
-
-          // Invalidate size to ensure proper tile rendering
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              if (mapRef.current) {
-                mapRef.current.invalidateSize();
-              }
-            }, 200);
-          });
-        } catch (error) {
-          console.error("Failed to initialize Leaflet map:", error);
-          throw new Error(
-            `Map initialization failed: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`
-          );
+        // Ensure container has dimensions before initializing
+        const containerHeight = container.offsetHeight;
+        if (containerHeight === 0) {
+          // Retry after a short delay if container isn't ready
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          if (!isMounted || isInitializedRef.current) return;
         }
-      })
-      .catch((error) => {
-        console.error("Failed to load Leaflet library:", error);
-        throw new Error(
-          "Failed to load map library. Please check your internet connection and try again."
-        );
-      });
 
-    // Cleanup function
-    return () => {
-      if (mapRef.current) {
-        try {
-          mapRef.current.remove();
-          mapRef.current = null;
-          setMap(null);
-        } catch (error) {
-          console.error("Error during map cleanup:", error);
+        // Initialize Leaflet map with initial values
+        const map = L.map(container, {
+          center: initialCenterRef.current,
+          zoom: initialZoomRef.current,
+          minZoom,
+          maxZoom,
+          zoomControl: DEFAULT_MAP_CONFIG.zoomControl,
+          attributionControl: DEFAULT_MAP_CONFIG.attributionControl,
+        });
+
+        // Mark as initialized before storing reference
+        isInitializedRef.current = true;
+        mapRef.current = map;
+
+        // Register map with context
+        setMap(map);
+
+        // Invalidate size after a brief delay to ensure proper tile rendering
+        requestAnimationFrame(() => {
+          if (mapRef.current && isMounted) {
+            setTimeout(() => {
+              mapRef.current?.invalidateSize();
+            }, 100);
+          }
+        });
+      } catch (error) {
+        if (isMounted) {
+          console.error("Failed to initialize Leaflet map:", error);
         }
       }
     };
-  }, [center, zoom, minZoom, maxZoom, setMap]); // Include all dependencies
+
+    initializeMap();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      cleanupMap();
+    };
+  }, [minZoom, maxZoom, setMap, cleanupMap]);
+
+  // Separate effect to handle view updates WITHOUT re-creating the map
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Only update if values differ from current map state
+    const currentCenter = mapRef.current.getCenter();
+    const currentZoom = mapRef.current.getZoom();
+
+    const centerChanged =
+      currentCenter.lat !== center[0] || currentCenter.lng !== center[1];
+    const zoomChanged = currentZoom !== zoom;
+
+    if (centerChanged || zoomChanged) {
+      mapRef.current.setView(center, zoom, { animate: true });
+    }
+  }, [center, zoom]);
 
   return (
     <>

@@ -1,35 +1,45 @@
 /**
  * Map utility functions for bounds calculation and map operations
  * Validates: Requirements 12.1
+ * 
+ * NOTE: This module is SSR-safe. Functions that need Leaflet use async imports.
  */
 
 import type { LatLngBounds } from 'leaflet';
-import L from 'leaflet';
 
 /**
- * Calculates bounding box from an array of coordinates
- * @param coordinates - Array of [latitude, longitude] tuples
- * @returns Leaflet LatLngBounds object or null if array is empty
+ * Raw bounds data that can be used without Leaflet
  */
-export function calculateBounds(
+export interface RawBounds {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+}
+
+/**
+ * Calculates raw bounding box from an array of coordinates (SSR-safe)
+ * @param coordinates - Array of [latitude, longitude] tuples
+ * @returns Raw bounds object or null if array is empty
+ */
+export function calculateRawBounds(
   coordinates: [number, number][]
-): LatLngBounds | null {
-  // Handle empty array
+): RawBounds | null {
   if (coordinates.length === 0) {
     return null;
   }
   
-  // Handle single point - create a small bounds around it
   if (coordinates.length === 1) {
     const [lat, lng] = coordinates[0];
-    const offset = 0.001; // Small offset for single point
-    return L.latLngBounds(
-      [lat - offset, lng - offset],
-      [lat + offset, lng + offset]
-    );
+    const offset = 0.001;
+    return {
+      minLat: lat - offset,
+      maxLat: lat + offset,
+      minLng: lng - offset,
+      maxLng: lng + offset,
+    };
   }
   
-  // Calculate bounds for multiple points
   let minLat = coordinates[0][0];
   let maxLat = coordinates[0][0];
   let minLng = coordinates[0][1];
@@ -42,19 +52,38 @@ export function calculateBounds(
     if (lng > maxLng) maxLng = lng;
   }
   
-  return L.latLngBounds([minLat, minLng], [maxLat, maxLng]);
+  return { minLat, maxLat, minLng, maxLng };
 }
 
 /**
- * Expands bounds by a percentage
+ * Calculates bounding box from an array of coordinates (async, client-only)
+ * @param coordinates - Array of [latitude, longitude] tuples
+ * @returns Promise of Leaflet LatLngBounds object or null if array is empty
+ */
+export async function calculateBounds(
+  coordinates: [number, number][]
+): Promise<LatLngBounds | null> {
+  const rawBounds = calculateRawBounds(coordinates);
+  if (!rawBounds) return null;
+  
+  const L = await import('leaflet');
+  return L.latLngBounds(
+    [rawBounds.minLat, rawBounds.minLng],
+    [rawBounds.maxLat, rawBounds.maxLng]
+  );
+}
+
+/**
+ * Expands bounds by a percentage (async, client-only)
  * @param bounds - Original bounds
  * @param percentage - Percentage to expand (e.g., 0.1 for 10%)
- * @returns Expanded bounds
+ * @returns Promise of expanded bounds
  */
-export function expandBounds(
+export async function expandBounds(
   bounds: LatLngBounds,
   percentage: number = 0.1
-): LatLngBounds {
+): Promise<LatLngBounds> {
+  const L = await import('leaflet');
   const sw = bounds.getSouthWest();
   const ne = bounds.getNorthEast();
   
@@ -92,11 +121,12 @@ export function getBoundsCenter(bounds: LatLngBounds): [number, number] {
 }
 
 /**
- * Calculates the area of bounds in square meters
+ * Calculates the area of bounds in square meters (async, client-only)
  * @param bounds - Leaflet LatLngBounds object
- * @returns Area in square meters (approximate)
+ * @returns Promise of area in square meters (approximate)
  */
-export function calculateBoundsArea(bounds: LatLngBounds): number {
+export async function calculateBoundsArea(bounds: LatLngBounds): Promise<number> {
+  const L = await import('leaflet');
   const sw = bounds.getSouthWest();
   const ne = bounds.getNorthEast();
   const nw = L.latLng(ne.lat, sw.lng);

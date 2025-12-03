@@ -35,6 +35,10 @@ export interface MapContextValue {
   map: LeafletMap | null;
   setMap: (map: LeafletMap | null) => void;
   isReady: boolean;
+  error: Error | null;
+  isInitializing: boolean;
+  setMapError: (error: Error | null) => void;
+  startInitializing: () => void;
 }
 
 /**
