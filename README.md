@@ -2,8 +2,8 @@
 
 A production-ready Next.js 16 starter template with vanilla Leaflet integration. Build modern, interactive map applications with a Google Maps-inspired UI.
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.0.7-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.1-61DAFB?logo=react)](https://react.dev/)
 [![Leaflet](https://img.shields.io/badge/Leaflet-1.9-199900?logo=leaflet)](https://leafletjs.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
@@ -50,16 +50,16 @@ A production-ready Next.js 16 starter template with vanilla Leaflet integration.
 
 ## 🛠 Tech Stack
 
-| Category      | Technology                          |
-| ------------- | ----------------------------------- |
-| Framework     | Next.js 16 (App Router)             |
-| UI            | React 19, Tailwind CSS 4, shadcn/ui |
-| Maps          | Leaflet 1.9 (vanilla, no wrapper)   |
-| Icons         | Lucide React                        |
-| Theming       | next-themes                         |
-| Notifications | Sonner (toast notifications)        |
-| Drawers       | Vaul (mobile-optimized)             |
-| Language      | TypeScript 5                        |
+| Category      | Technology                              |
+| ------------- | --------------------------------------- |
+| Framework     | Next.js 16.0.7 (App Router)             |
+| UI            | React 19.2.1, Tailwind CSS 4, shadcn/ui |
+| Maps          | Leaflet 1.9 (vanilla, no wrapper)       |
+| Icons         | Lucide React                            |
+| Theming       | next-themes                             |
+| Notifications | Sonner (toast notifications)            |
+| Drawers       | Vaul (mobile-optimized)                 |
+| Language      | TypeScript 5                            |
 
 ## 🚀 Quick Start
 
