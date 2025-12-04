@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import { LeafletMap } from "./LeafletMap";
 import { LeafletTileLayer } from "./LeafletTileLayer";
 import { LeafletGeoJSON } from "./LeafletGeoJSON";
@@ -45,6 +46,7 @@ export function MapMain() {
     lat: number;
     lng: number;
   } | null>(null);
+  const [poiPanelMode, setPOIPanelMode] = useState<"list" | "add">("list");
   const [isSelectingPOILocation, setIsSelectingPOILocation] = useState(false);
   const [cursorCoords, setCursorCoords] = useState<{
     lat: number;
@@ -118,6 +120,7 @@ export function MapMain() {
     // Always set fresh coordinates - this ensures updates even if panel is already open
     setPOIInitialCoords({ lat, lng });
     setPOIFilterCategory(null);
+    setPOIPanelMode("add");
     setIsPOIPanelOpen(true);
   }, []);
 
@@ -125,12 +128,14 @@ export function MapMain() {
   const handleOpenPOIPanel = useCallback((category?: POICategory) => {
     setPOIFilterCategory(category || null);
     setPOIInitialCoords(null);
+    setPOIPanelMode("list");
     setIsPOIPanelOpen(true);
   }, []);
 
   const handleClosePOIPanel = useCallback(() => {
     setIsPOIPanelOpen(false);
     setIsSelectingPOILocation(false);
+    setPOIPanelMode("list");
     // Reset coordinates and category after a brief delay to allow panel to close smoothly
     setTimeout(() => {
       setPOIFilterCategory(null);
@@ -148,6 +153,11 @@ export function MapMain() {
     setPOIInitialCoords(null);
     setCursorCoords(null);
     setIsSelectingPOILocation(false);
+  }, []);
+
+  // Handle POI panel mode change
+  const handlePOIModeChange = useCallback((mode: "list" | "add" | "edit") => {
+    setPOIPanelMode(mode as "list" | "add");
   }, []);
 
   // Handle map click for POI location selection
@@ -191,10 +201,12 @@ export function MapMain() {
         const text = await file.text();
         const geojson = JSON.parse(text);
         const count = importGeoJSON(geojson);
-        alert(`Successfully imported ${count} place${count !== 1 ? "s" : ""}!`);
+        toast.success(
+          `Successfully imported ${count} place${count !== 1 ? "s" : ""}!`
+        );
       } catch (error) {
         console.error("Failed to import POIs:", error);
-        alert("Failed to import file. Please check the format.");
+        toast.error("Failed to import file. Please check the format.");
       }
     },
     [importGeoJSON]
@@ -306,11 +318,13 @@ export function MapMain() {
         onFlyTo={flyToPOI}
         onRequestLocation={handleRequestPOILocation}
         onClearCoordinates={handleClearPOICoordinates}
+        onModeChange={handlePOIModeChange}
         isSelectingLocation={isSelectingPOILocation}
         initialLat={poiInitialCoords?.lat}
         initialLng={poiInitialCoords?.lng}
         cursorLat={cursorCoords?.lat}
         cursorLng={cursorCoords?.lng}
+        mode={poiPanelMode}
       />
     </div>
   );

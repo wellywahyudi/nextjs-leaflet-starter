@@ -16,6 +16,8 @@ A production-ready Next.js 16 starter template with vanilla Leaflet integration.
 
 ## ✨ Features
 
+### Core Map Features
+
 - **Modern Map Interface** — Google Maps-inspired UI with smooth animations
 - **Multiple Tile Providers** — OpenStreetMap, Satellite (Esri), and Dark mode (CARTO)
 - **Theme-Aware Basemaps** — Auto-switches map style based on light/dark theme
@@ -25,16 +27,39 @@ A production-ready Next.js 16 starter template with vanilla Leaflet integration.
 - **Responsive Design** — Mobile-first approach with adaptive layouts
 - **Server Components** — Next.js 16 App Router with optimized client boundaries
 
+### 🆕 POI (Point of Interest) Management
+
+- **Full CRUD Operations** — Create, read, update, and delete custom places
+- **14 Category Types** — Food & Drink, Shopping, Transport, Lodging, Health, Entertainment, Nature, Services, Education, Religion, Business, Tourism, Emergency, Utilities
+- **Interactive Location Picker** — Click-to-select with live cursor tracking and crosshair cursor
+- **LocalStorage Persistence** — Your places are saved automatically
+- **GeoJSON Import/Export** — Share and backup your places
+- **Category Filtering** — Filter places by category with color-coded markers
+- **Fly-to Animation** — Smooth navigation to any saved place
+- **Mobile-Optimized** — Drawer UI on mobile, side panel on desktop
+- **Toast Notifications** — Beautiful, colorful feedback for all actions
+
+### 🎯 Advanced Features
+
+- **Context Menu** — Right-click for quick actions (copy coordinates, add marker, measure, save place)
+- **Measurement Tools** — Distance and area measurement with interactive drawing
+- **User Markers** — Add custom markers anywhere on the map
+- **Real-time Coordinate Display** — Live lat/lng tracking when selecting locations
+- **Dark Mode Support** — Seamless theme switching with persistent preferences
+- **Error Boundaries** — Graceful error handling with fallback UI
+
 ## 🛠 Tech Stack
 
-| Category  | Technology                          |
-| --------- | ----------------------------------- |
-| Framework | Next.js 16 (App Router)             |
-| UI        | React 19, Tailwind CSS 4, shadcn/ui |
-| Maps      | Leaflet 1.9 (vanilla, no wrapper)   |
-| Icons     | Lucide React                        |
-| Theming   | next-themes                         |
-| Language  | TypeScript 5                        |
+| Category      | Technology                          |
+| ------------- | ----------------------------------- |
+| Framework     | Next.js 16 (App Router)             |
+| UI            | React 19, Tailwind CSS 4, shadcn/ui |
+| Maps          | Leaflet 1.9 (vanilla, no wrapper)   |
+| Icons         | Lucide React                        |
+| Theming       | next-themes                         |
+| Notifications | Sonner (toast notifications)        |
+| Drawers       | Vaul (mobile-optimized)             |
+| Language      | TypeScript 5                        |
 
 ## 🚀 Quick Start
 
@@ -71,15 +96,20 @@ Open [http://localhost:3000](http://localhost:3000) to view the landing page, th
 
 ## 🗺 Map Components
 
-| Component          | Description                            |
-| ------------------ | -------------------------------------- |
-| `LeafletMap`       | Core map container with initialization |
-| `LeafletTileLayer` | Dynamic tile layer switching           |
-| `LeafletGeoJSON`   | GeoJSON rendering with styling         |
-| `LeafletMarker`    | Custom markers                         |
-| `MapControls`      | Zoom, fullscreen, location, reset      |
-| `MapTileSwitcher`  | Tile provider switcher with previews   |
-| `MapSearchBar`     | Country search with autocomplete       |
+| Component             | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `LeafletMap`          | Core map container with initialization      |
+| `LeafletTileLayer`    | Dynamic tile layer switching                |
+| `LeafletGeoJSON`      | GeoJSON rendering with styling              |
+| `LeafletMarker`       | Custom markers with popups                  |
+| `MapControls`         | Zoom, fullscreen, location, reset           |
+| `MapTileSwitcher`     | Tile provider switcher with previews        |
+| `MapSearchBar`        | Country search with autocomplete            |
+| `MapContextMenu`      | Right-click menu for quick actions          |
+| `MapPOIPanel`         | POI management with CRUD operations         |
+| `MapMeasurementPanel` | Distance and area measurement tools         |
+| `MapDetailsPanel`     | Country information with REST Countries API |
+| `MapErrorBoundary`    | Error handling with fallback UI             |
 
 ## 🎨 Customization
 
@@ -146,6 +176,19 @@ vercel
 ### Environment Variables
 
 No environment variables required for basic deployment. The app uses public GeoJSON data from the `/public/data` directory.
+
+## 📊 Production Readiness
+
+This starter is production-ready with:
+
+- ✅ Error boundaries and graceful fallbacks
+- ✅ Optimized bundle size with code splitting
+- ✅ Memory leak prevention with proper cleanup
+- ✅ Toast notifications instead of blocking alerts
+- ✅ TypeScript strict mode
+- ✅ Responsive design (mobile-first)
+- ✅ Accessibility features (ARIA labels, keyboard navigation)
+- ✅ Dark mode support
 
 ## 🤝 Contributing
 

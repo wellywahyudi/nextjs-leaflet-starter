@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useState, useCallback, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import {
   X,
@@ -15,6 +15,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Drawer } from "vaul";
+import { toast } from "sonner";
 import type { POI, POICategory } from "@/types/poi";
 import {
   POI_CATEGORIES,
@@ -46,12 +47,13 @@ interface MapPOIPanelProps {
   onFlyTo: (poi: POI) => void;
   onRequestLocation?: () => void;
   onClearCoordinates?: () => void;
+  onModeChange?: (mode: "list" | "add" | "edit") => void;
   isSelectingLocation?: boolean;
   initialLat?: number;
   initialLng?: number;
   cursorLat?: number;
   cursorLng?: number;
-  startInAddMode?: boolean; // New prop to control initial view
+  mode?: "list" | "add"; // Control view mode from parent
 }
 
 type ViewMode = "list" | "add" | "edit";
@@ -164,22 +166,16 @@ export const MapPOIPanel = memo(function MapPOIPanel({
   onFlyTo,
   onRequestLocation,
   onClearCoordinates,
+  onModeChange,
   isSelectingLocation: isSelectingLocationProp = false,
   initialLat,
   initialLng,
   cursorLat,
   cursorLng,
+  mode: externalMode,
 }: MapPOIPanelProps) {
   const [isMobile, setIsMobile] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [editingPOI, setEditingPOI] = useState<POI | null>(null);
-  const [formData, setFormData] = useState<POIFormData>({
-    title: "",
-    description: "",
-    lat: "",
-    lng: "",
-    category: "food-drink",
-  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const snapPoints = [0.4, 0.7, 1];
   const [snap, setSnap] = useState<number | string | null>(snapPoints[1]);
@@ -192,67 +188,52 @@ export const MapPOIPanel = memo(function MapPOIPanel({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Derive initial coordinates for form (avoid setState in effect)
+  // Derive initial coordinates for form
   const initialLatStr = initialLat?.toFixed(6) || "";
   const initialLngStr = initialLng?.toFixed(6) || "";
 
-  // Track previous values to detect changes
-  const prevIsOpenRef = useRef(isOpen);
-  const prevInitialLatRef = useRef(initialLatStr);
-  const prevInitialLngRef = useRef(initialLngStr);
+  // Use external mode if provided, otherwise manage internally
+  const [internalViewMode, setInternalViewMode] = useState<ViewMode>("list");
+  const viewMode = externalMode || internalViewMode;
+  const setViewMode = useCallback(
+    (mode: ViewMode) => {
+      if (externalMode && onModeChange) {
+        // Notify parent of mode change
+        onModeChange(mode);
+      } else {
+        // Manage internally
+        setInternalViewMode(mode);
+      }
+    },
+    [externalMode, onModeChange]
+  );
 
-  // Handle panel state synchronization
+  // Initialize form data - derive from props when available
+  const initialFormData = useMemo(
+    () => ({
+      title: "",
+      description: "",
+      lat: initialLatStr,
+      lng: initialLngStr,
+      category: (filterCategory || "food-drink") as POICategory,
+    }),
+    [initialLatStr, initialLngStr, filterCategory]
+  );
+
+  const [formData, setFormData] = useState<POIFormData>(initialFormData);
+
+  // Update form coordinates when they change from parent
+  // This is a legitimate use of setState in effect for prop synchronization
   useEffect(() => {
-    const justOpened = isOpen && !prevIsOpenRef.current;
-    const justClosed = !isOpen && prevIsOpenRef.current;
-    const coordsChanged =
-      (initialLatStr !== prevInitialLatRef.current ||
-        initialLngStr !== prevInitialLngRef.current) &&
-      initialLatStr &&
-      initialLngStr;
-
-    // Case 1: Panel just opened with coordinates (from context menu)
-    if (justOpened && initialLatStr && initialLngStr) {
-      // This is intentional state synchronization with panel opening
-      /* eslint-disable react-hooks/set-state-in-effect */
-      setViewMode("add");
-      setEditingPOI(null);
-      setFormData({
-        title: "",
-        description: "",
+    if (initialLatStr && initialLngStr) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormData((prev) => ({
+        ...prev,
         lat: initialLatStr,
         lng: initialLngStr,
-        category: filterCategory || "food-drink",
-      });
-      /* eslint-enable react-hooks/set-state-in-effect */
+      }));
     }
-    // Case 2: Panel already open, but new coordinates provided (multiple context menu clicks)
-    // Update coordinates regardless of current view mode (list or add)
-    else if (isOpen && coordsChanged) {
-      // This is intentional state synchronization with coordinate changes
-      /* eslint-disable react-hooks/set-state-in-effect */
-      setViewMode("add");
-      setEditingPOI(null);
-      setFormData({
-        title: "",
-        description: "",
-        lat: initialLatStr,
-        lng: initialLngStr,
-        category: filterCategory || "food-drink",
-      });
-      /* eslint-enable react-hooks/set-state-in-effect */
-    }
-    // Case 3: Panel closed - reset state
-    else if (justClosed) {
-      setViewMode("list");
-      setEditingPOI(null);
-    }
-
-    // Update refs
-    prevIsOpenRef.current = isOpen;
-    prevInitialLatRef.current = initialLatStr;
-    prevInitialLngRef.current = initialLngStr;
-  }, [isOpen, initialLatStr, initialLngStr, filterCategory]);
+  }, [initialLatStr, initialLngStr]);
 
   // Filter POIs by category if specified
   const displayPOIs = filterCategory
@@ -276,22 +257,25 @@ export const MapPOIPanel = memo(function MapPOIPanel({
       lng: initialLngStr,
       category: filterCategory || "food-drink",
     });
-  }, [initialLatStr, initialLngStr, filterCategory]);
+  }, [setViewMode, initialLatStr, initialLngStr, filterCategory]);
 
   /**
    * Handle edit POI mode
    */
-  const handleEditMode = useCallback((poi: POI) => {
-    setViewMode("edit");
-    setEditingPOI(poi);
-    setFormData({
-      title: poi.title,
-      description: poi.description || "",
-      lat: poi.lat.toFixed(6),
-      lng: poi.lng.toFixed(6),
-      category: poi.category,
-    });
-  }, []);
+  const handleEditMode = useCallback(
+    (poi: POI) => {
+      setViewMode("edit");
+      setEditingPOI(poi);
+      setFormData({
+        title: poi.title,
+        description: poi.description || "",
+        lat: poi.lat.toFixed(6),
+        lng: poi.lng.toFixed(6),
+        category: poi.category,
+      });
+    },
+    [setViewMode]
+  );
 
   /**
    * Handle save POI
@@ -301,12 +285,12 @@ export const MapPOIPanel = memo(function MapPOIPanel({
     const lng = parseFloat(formData.lng);
 
     if (!formData.title.trim()) {
-      alert("Please enter a title");
+      toast.error("Please enter a title");
       return;
     }
 
     if (isNaN(lat) || isNaN(lng)) {
-      alert("Please enter valid coordinates");
+      toast.error("Please enter valid coordinates");
       return;
     }
 
@@ -318,6 +302,7 @@ export const MapPOIPanel = memo(function MapPOIPanel({
         lng,
         category: formData.category,
       });
+      toast.success("Place updated successfully");
     } else {
       onAddPOI(
         formData.title.trim(),
@@ -326,6 +311,7 @@ export const MapPOIPanel = memo(function MapPOIPanel({
         formData.category,
         formData.description.trim() || undefined
       );
+      toast.success("Place added successfully");
     }
 
     // Clear form and reset state
@@ -348,6 +334,7 @@ export const MapPOIPanel = memo(function MapPOIPanel({
     onAddPOI,
     onUpdatePOI,
     onClearCoordinates,
+    setViewMode,
   ]);
 
   /**
@@ -372,11 +359,25 @@ export const MapPOIPanel = memo(function MapPOIPanel({
   );
 
   /**
+   * Handle delete POI with toast
+   */
+  const handleDeletePOI = useCallback(
+    (id: string, title: string) => {
+      onDeletePOI(id);
+      toast.success(`"${title}" deleted`);
+    },
+    [onDeletePOI]
+  );
+
+  /**
    * Handle clear all with confirmation
    */
   const handleClearAll = useCallback(() => {
     if (confirm(`Are you sure you want to delete all ${pois.length} POIs?`)) {
       onClearAll();
+      toast.success(
+        `Cleared ${pois.length} place${pois.length !== 1 ? "s" : ""}`
+      );
     }
   }, [pois.length, onClearAll]);
 
@@ -597,7 +598,7 @@ export const MapPOIPanel = memo(function MapPOIPanel({
                   key={poi.id}
                   poi={poi}
                   onEdit={() => handleEditMode(poi)}
-                  onDelete={() => onDeletePOI(poi.id)}
+                  onDelete={() => handleDeletePOI(poi.id, poi.title)}
                   onFlyTo={() => onFlyTo(poi)}
                 />
               ))}

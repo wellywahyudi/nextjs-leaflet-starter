@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useLeafletMap } from './useLeafletMap';
 import type { Circle, Marker, LocationEvent, ErrorEvent } from 'leaflet';
 
@@ -118,9 +119,7 @@ export function useGeolocation() {
       setIsLocating(false);
       cleanupEventHandlers();
       console.error('Location error:', e.message);
-      alert(
-        'Unable to find your location. Please check your browser permissions.'
-      );
+      toast.error('Unable to find your location. Please check your browser permissions.');
     };
 
     // Store handler references
